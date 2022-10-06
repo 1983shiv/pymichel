@@ -1,13 +1,20 @@
-from playwright.async_api import async_playwright
-import asyncio
+from playwright.sync_api import sync_playwright
+from flask import Flask
+import json
+import time
 
 
-async def scrap():
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
-        await page.goto("https://www.ergodotisi.com/en/SearchResults.aspx")
-        items = []
+def my_function(x):
+    return 5 * x
+
+
+def scrap():
+    items = []
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.goto("https://www.ergodotisi.com/en/SearchResults.aspx")
+
         i = 0
         # while i < 15:
         #     page.mouse.wheel(0, 4000)
@@ -17,7 +24,7 @@ async def scrap():
         tr = page.query_selector_all(".dxdvItem")
         # print(len(tr))
         for dt in tr:
-            if ("yesterday" in dt.query_selector_all("p")[3].inner_text()):
+            if ("today" in dt.query_selector_all("p")[3].inner_text()):
                 item = {
                     "title": dt.query_selector_all("a")[0].inner_text(),
                     "url": dt.query_selector_all("a")[1].inner_text(),
@@ -29,16 +36,25 @@ async def scrap():
                     "typeofjob": dt.query_selector_all("p")[5].inner_text()
                 }
                 items.append(item)
-        print(len(items))
-        for item in items:
-            print(item['title'] + "-" + item['url'])
+        # print(len(items))
+        # for item in items:
+        #     print(item['title'] + "-" + item['url'])
 
         browser.close()
+    return items
 
 
-def main():
-    scrap()
+app = Flask(__name__)
 
 
-if __name__ == '__main__':
-    main()
+@app.route('/')
+def home():
+    # for item in items:
+    #     print(item['title'] + "-" + item['url'])
+    # data = {"Page": "home", "Data": scrap(), "Timestamp": time.time()}
+    json_dump = json.dumps(scrap())
+    return json_dump
+    # return render_template("index.html")
+
+
+app.run(debug=True)
